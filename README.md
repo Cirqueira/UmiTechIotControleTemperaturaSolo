@@ -1,4 +1,4 @@
-# 🌾 UmiTechIotControleTemperaturaSolo
+# 🌾 UmiTechIot - Sistema Automatizado de Irrigação e Controle de Temperatura do Solo.
 
 Sistema inteligente de monitoramento e automação de irrigação utilizando **ESP32**, protocolo **ESP-NOW** e arquitetura **MVC**.
 
