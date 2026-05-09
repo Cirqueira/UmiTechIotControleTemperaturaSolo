@@ -5,51 +5,113 @@ const char index_html[] PROGMEM = R"rawliteral(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UmiTech IoT</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f8e9; margin: 0; padding: 20px; color: #33691e; }
-    h1 { text-align: center; color: #2e7d32; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .card { background: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.3s; }
-    .card:hover { transform: translateY(-5px); }
-    .card i { font-size: 40px; color: #8bc34a; margin-bottom: 10px; }
-    .value { font-size: 24px; font-weight: bold; display: block; }
-    table { width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-collapse: collapse; }
-    th, td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
-    th { background-color: #c5e1a5; color: #33691e; }
-    .status-on { color: #d32f2f; font-weight: bold; }
-    .status-off { color: #388e3c; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background-color: #f1f8e9; color: #33691e; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    header { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
+    header h1 { color: #2e7d32; font-size: 1.6rem; }
+    .cards-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; width: 100%; max-width: 900px; margin-bottom: 25px; }
+    .card { background-color: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); text-align: center; }
+    .label { font-size: 0.75rem; text-transform: uppercase; color: #7cb342; font-weight: bold; display: block; margin-bottom: 10px; }
+    .value { font-size: 1.6rem; font-weight: bold; }
+    .bomba-ligada .value { color: #1b5e20 !important; } 
+    .bomba-desligada .value { color: #b71c1c !important; }
+    .table-container { width: 100%; max-width: 900px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead { background-color: #c5e1a5; }
+    th, td { padding: 12px; text-align: center; }
+    tbody tr:nth-child(even) { background-color: #f9fbe7; }
+    .tabela-ligada { color: #1b5e20; font-weight: bold; }
+    .tabela-desligada { color: #b71c1c; font-weight: bold; }
+    @keyframes flash { 0% { background-color: #dcedc8; } 100% { background-color: transparent; } }
+    .new-row { animation: flash 1.5s ease-out; }
   </style>
 </head>
 <body>
-  <h1>🌿 UmiTech IoT: Controle de Solo</h1>
-  <div class="cards">
-    <div class="card"><i class="fas fa-thermometer-half"></i><span>Temperatura</span><span id="temp" class="value">--°C</span></div>
-    <div class="card"><i class="fas fa-seedling"></i><span>Umidade Solo</span><span id="solo" class="value">--</span></div>
-    <div class="card"><i class="fas fa-faucet-drip"></i><span>Bomba d'água</span><span id="bomba" class="value">--</span></div>
+  <header><h1>🌿 UmiTech IoT: Controle de Solo 🌿</h1></header>
+  <div class="cards-container">
+    <div class="card"><span class="label">Temperatura Ar</span><span id="temp" class="value" style="color:#1b5e20">--</span></div>
+    <div class="card"><span class="label">Umidade Solo</span><span id="solo" class="value" style="color:#1b5e20">--</span></div>
+    <div id="status-card" class="card"><span class="label">Bomba d'água</span><span id="bomba" class="value">--</span></div>
   </div>
-  <table>
-    <thead><tr><th>Registro</th><th>Temp.</th><th>Solo</th><th>Bomba</th></tr></thead>
-    <tbody id="tabela-corpo"></tbody>
-  </table>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Data / Hora</th><th>Temp.</th><th>Umidade (%)</th><th>Status Bomba</th></tr></thead>
+      <tbody id="tabela-corpo"></tbody>
+    </table>
+  </div>
   <script>
-    async function carregar() {
-      try {
-        const r = await fetch('/dados');
-        const d = await r.json();
-        document.getElementById('temp').innerText = d.atual.temp.toFixed(1) + "°C";
-        document.getElementById('solo').innerText = d.atual.solo;
-        document.getElementById('bomba').innerText = d.atual.bomba ? "LIGADA" : "DESLIGADA";
-        document.getElementById('bomba').className = d.atual.bomba ? "value status-on" : "value status-off";
-        
-        let html = "";
-        d.historico.forEach((h, i) => {
-          html += `<tr><td>#${i+1}</td><td>${h.t}°C</td><td>${h.s}</td><td>${h.b}</td></tr>`;
+    let historicoLocal = [];
+    let falhas = 0;
+
+    function carregar() {
+      // Cria um controlador para cancelar a requisição se demorar mais de 4 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      fetch('/dados', { signal: controller.signal })
+      .then(response => {
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error('Erro na resposta');
+        return response.json();
+      })
+      .then(d => {
+        falhas = 0;
+        const agora = new Date().toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
         });
-        document.getElementById('tabela-corpo').innerHTML = html;
-      } catch(e) { console.log("Erro ao buscar dados"); }
+        
+        // Atualiza Cards
+        document.getElementById('temp').innerText = d.atual.temp > 0 ? d.atual.temp.toFixed(1) + "°C" : "ERRO";
+        document.getElementById('solo').innerText = (typeof d.atual.umid === "number") ? (d.atual.umid.toFixed(0) + "%") : "--";
+        
+        const bCard = document.getElementById('status-card');
+        const bTxt = document.getElementById('bomba');
+        const statusBomba = d.atual.bomba;
+        
+        bTxt.innerText = statusBomba ? "LIGADA" : "DESLIGADA";
+        bCard.className = statusBomba ? "card bomba-ligada" : "card bomba-desligada";
+
+        // Atualiza Tabela se houver mudança no solo ou na bomba
+        const novo = { h: agora, t: d.atual.temp, s: d.atual.umid, b: statusBomba };
+        
+        if(historicoLocal.length === 0 || historicoLocal[0].s !== novo.s || historicoLocal[0].b !== novo.b) {
+          historicoLocal.unshift(novo);
+          if(historicoLocal.length > 8) historicoLocal.pop();
+          render(true);
+        }
+      })
+      .catch(error => {
+        falhas++;
+        console.log("Tentativa de reconexão (" + falhas + "): " + error.message);
+      });
     }
-    setInterval(carregar, 3000);
+
+    function render(efeito) {
+      let h = "";
+      historicoLocal.forEach((l, i) => {
+        const classeBomba = l.b ? 'tabela-ligada' : 'tabela-desligada';
+        const textoBomba = l.b ? 'LIGADA' : 'DESLIGADA';
+        const tempTexto = l.t > 0 ? l.t.toFixed(1) + '°C' : '---';
+        const umidTexto = (typeof l.s === "number") ? (l.s.toFixed(0) + '%') : '---';
+        
+        h += `<tr ${efeito && i==0 ? "class='new-row'":""}>
+                <td>${l.h}</td>
+                <td>${tempTexto}</td>
+                <td>${umidTexto}</td>
+                <td class="${classeBomba}">${textoBomba}</td>
+              </tr>`;
+      });
+      document.getElementById('tabela-corpo').innerHTML = h;
+    }
+
+    // Intervalo de 5 segundos para não sobrecarregar o rádio do ESP32
+    setInterval(carregar, 5000); 
     carregar();
   </script>
 </body>
