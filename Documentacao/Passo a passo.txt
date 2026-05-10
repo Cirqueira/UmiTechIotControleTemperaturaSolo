@@ -1,0 +1,44 @@
+01 - Rodar Identifica_mac.ino no Receptor, e guardar o MAC do ESP Receptor:
+// Exemplo com dados ficticios
+// O MAC que você obteve: 35:15:2B:E1:3A:C9
+uint8_t broadcastAddress[] = {0x35, 0x15, 0x2B, 0xE1, 0x3A, 0xC9};
+
+02 - Rodar Transmissor_Sensor.ino no Esp Transmissor com o codigo ajustado com o MAC.
+
+03 - Com Esp02 (Receptor) funcionando.
+Instalar Bibliotecas
+No Gerenciador de Bibliotecas da Arduino IDE, instale:
+    Adafruit SSD1306
+    Adafruit GFX Library
+
+Sensacional! Se apareceu essa mensagem, o seu Nó Receptor (o cérebro do sistema) já criou a rede Wi-Fi e está pronto para servir o dashboard e controlar a bomba.
+
+Agora, para ver o resultado final na prática, siga estes 3 passos:
+1. Conexão e Acesso ao Painel
+
+    No seu celular ou computador, procure as redes Wi-Fi e conecte-se na: UmiTech_Agro 
+    Obs: se a senha for vazia, automaticamente sera (Senha: 12345678).
+
+    Abra o navegador (Chrome, Safari ou Edge) e digite o endereço: 192.168.4.1.
+
+    Você deve ver o dashboard verde com os ícones e a tabela que configuramos.
+	
+-----------------------------------------------------------------------------	
+	
+2. O Teste de Comunicação (ESP-NOW)
+
+Agora, ligue o seu Nó Transmissor (o que tem os sensores). Observe o Serial Monitor do Transmissor:
+
+    Se ele exibir "Sucesso (Entregue)", significa que os dados de temperatura e solo já estão chegando ao Receptor.
+
+    Olhe para o Dashboard no seu navegador: os valores de Temperatura e Solo devem começar a atualizar automaticamente a cada 3 a 5 segundos.
+
+-----------------------------------------------------------------------------
+
+3. O Teste da Bomba (Ação do Relé)
+
+Este é o momento mais importante do projeto:
+
+    Simule Solo Seco: Tire o sensor de solo da terra (deixe-o no ar). O valor deve subir (ex: acima de 800). O Relé deve estalar (Click!) e o Dashboard mostrará Bomba: LIGADA.
+
+    Simule Solo Úmido: Coloque o sensor em um copo com água. O valor deve cair drasticamente. O Relé deve estalar novamente e o Dashboard mostrará Bomba: DESLIGADA.
