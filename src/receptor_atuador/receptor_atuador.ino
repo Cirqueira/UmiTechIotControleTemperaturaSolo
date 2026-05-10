@@ -87,7 +87,8 @@ void setup() {
 
     // CONFIGURAÇÃO DE WI-FI ROBUSTA
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP("UmiTechIOT", ""); // Sem senha para facilitar
+    //WiFi.softAP("UmiTechIOT", ""); // ou "12345678"
+    WiFi.softAP("UmiTechIOT", "123@456#"); // senha difinida
     
     // Forçar o canal 1 (evita que o rádio fique pulando de frequência)
     esp_wifi_set_promiscuous(true);
