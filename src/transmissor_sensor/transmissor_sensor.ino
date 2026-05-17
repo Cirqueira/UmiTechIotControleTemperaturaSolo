@@ -23,7 +23,8 @@ struct_message myData;
 DHT dht(DHTPIN, DHTTYPE);
 
 void OnDataSent(const wifi_tx_info_t *tx_info, esp_now_send_status_t status) {
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? ">>> Radio: OK" : ">>> Radio: ERRO");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? " -> Status Envio: Ok" : " -> Status Envio: Erro");
+  Serial.println(); 
 }
 
 void setup() {
@@ -58,8 +59,12 @@ void loop() {
   float t = dht.readTemperature();
   myData.temp = isnan(t) ? 0.0 : t;
 
-  Serial.printf("Enviando -> Solo(bruto): %d | Umidade: %d%% | Temp: %.1f\n",
+  // Serial.printf("Enviando -> Solo(bruto): %d | Umidade: %d%% | Temp: %.1f\n",
+  //               myData.solo, umidadePercentual, myData.temp);
+  Serial.println("Enviando..:");
+  Serial.printf(" -> Solo(bruto): %d | Umidade: %d%% | Temp: %.1f\n",
                 myData.solo, umidadePercentual, myData.temp);
+
   esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
   delay(10000);
 }
