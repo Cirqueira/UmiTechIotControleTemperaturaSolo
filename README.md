@@ -17,15 +17,15 @@ O UmiTech foi desenvolvido para resolver o problema de comunicação em áreas d
 Aqui estão algumas imagens do sistema em pleno funcionamento:
 
 <p align="center">
-  <img src="img/Dashboard_01.jpg" width="45%" alt="01 - Dashboard UmiTech IoT">
-  <img src="img/Dashboard_02.jpg" width="45%" alt="02 - Dashboard UmiTech IoT">
-  <img src="img/Dashboard_03.jpg" width="45%" alt="03 - Dashboard UmiTech IoT">
-  <img src="img/Dashboard_04.jpg" width="45%" alt="04 - Dashboard UmiTech IoT">
+  <img src="src/img/Dashboard_01.jpg" width="45%" alt="01 - Dashboard UmiTech IoT">
+  <img src="src/img/Dashboard_02.jpg" width="45%" alt="02 - Dashboard UmiTech IoT">
+  <img src="src/img/Dashboard_03.jpg" width="45%" alt="03 - Dashboard UmiTech IoT">
+  <img src="src/img/Dashboard_04.jpg" width="45%" alt="04 - Dashboard UmiTech IoT">
 </p>
 
 <p align="center">
-  <img src="img/transmissor.jpeg" width="45%" alt="Nó Transmissor">
-  <img src="img/receptor.jpeg" width="45%" alt="Nó Receptor">
+  <img src="src/img/transmissor.jpeg" width="45%" alt="Nó Transmissor">
+  <img src="src/img/receptor.jpeg" width="45%" alt="Nó Receptor">
 </p>
 
 ---
