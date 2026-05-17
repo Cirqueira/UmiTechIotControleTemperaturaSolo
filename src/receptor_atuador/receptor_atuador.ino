@@ -29,6 +29,7 @@ AsyncWebServer server(80);
 
 // NOVA VARIÁVEL: Controla se o automatismo está ligado ou desligado
 bool rotinaAtiva = true;
+bool estadoBombaManual = false; // Guarda o estado manual desejado pelo usuário
 
 static void desenharOLED() {
     display.clearDisplay();
@@ -54,19 +55,22 @@ static void desenharOLED() {
 void processarBomba() {
     // Se o usuário bloqueou a rotina pelo Browser, força a bomba a ficar desligada e ignora o sensor
     if (!rotinaAtiva) {
-        digitalWrite(RELE_PIN, LOW); // Garante que fica DESLIGADA fisicamente
+        // digitalWrite(RELE_PIN, LOW); // Garante que fica DESLIGADA fisicamente
+        digitalWrite(RELE_PIN, estadoBombaManual ? HIGH : LOW);
         return;
     }
 
     // Lógica Automática Normal
     // Invertendo os comandos para sincronizar com o comportamento físico do seu relé
     if (readings.umid < 55.0f) {
-        digitalWrite(RELE_PIN, HIGH); // Liga fisicamente
-        Serial.println(" -> Bomba Comando: Ligar");
+        digitalWrite(RELE_PIN, HIGH); // Liga o relé fisicamente
+        estadoBombaManual = true;     // Sincroniza a variável manual
+        Serial.println(" -> Bomba Comando: Ligar (Automatico)");
     } 
     else if (readings.umid > 65.0f) {
-        digitalWrite(RELE_PIN, LOW);  // Desliga fisicamente
-        Serial.println(" -> Bomba Comando: Desligar");
+        digitalWrite(RELE_PIN, LOW);  // Desliga o relé fisicamente
+        estadoBombaManual = false;    // Sincroniza a variável manual
+        Serial.println(" -> Bomba Comando: Desligar (Automatico)");
     }
 }
 
@@ -90,6 +94,7 @@ void OnDataRecv(const esp_now_recv_info_t * info, const uint8_t *data, int len) 
 
     if(!rotinaAtiva) {
         Serial.println(" -> Rotina Automatica: [BLOQUEADA PELO USUARIO]");
+        Serial.printf(" -> Rotina Automatica: [BLOQUEADA] | Comando Manual: [%s]\n", estadoBombaManual ? "LIGADO" : "DESLIGADO");
     }
 
     processarBomba();
@@ -101,7 +106,7 @@ void setup() {
     delay(500);
 	
 	pinMode(RELE_PIN, OUTPUT);
-    digitalWrite(RELE_PIN, HIGH); // Inicia desligado (para relés de lógica inversa)
+    digitalWrite(RELE_PIN, HIGH); // Inicia desligado (lógica inversa de relés)
 
     // OLED: inicializa I2C e o display
     Wire.begin(); // padrão ESP32: SDA=21, SCL=22
@@ -147,17 +152,31 @@ void setup() {
         request->send(response);
     });
 
-    // NOVA ROTA: Recebe o comando de clique do botão para inverter a trava
+    // Rota da Automação: Ativa/Desativa o automatismo
     server.on("/toggleRotina", HTTP_GET, [](AsyncWebServerRequest *request){
         rotinaAtiva = !rotinaAtiva; // Inverte o estado atual
         if(!rotinaAtiva) {
-            digitalWrite(RELE_PIN, LOW); // Se bloqueou, desliga imediatamente a bomba
+            // Ao desligar a automação, por segurança, desliga a bomba
+            digitalWrite(RELE_PIN, LOW); 
+            estadoBombaManual = false;
         }
         request->send(200, "text/plain", rotinaAtiva ? "Ativa" : "Bloqueada");
         Serial.printf(">>> Modificacao Manual: Rotina Automatica agora esta [%s]\n", rotinaAtiva ? "ATIVA" : "BLOQUEADA");
     });
 
-    // Rota de Dados atualizada para enviar o status do botão para a interface
+    // NOVA ROTA: Liga/Desliga a bomba manualmente pelo botão no browser
+    server.on("/toggleBomba", HTTP_GET, [](AsyncWebServerRequest *request){
+        if (!rotinaAtiva) { // Só aceita o comando se a automação estiver inoperante
+            estadoBombaManual = !estadoBombaManual;
+            digitalWrite(RELE_PIN, estadoBombaManual ? HIGH : LOW);
+            request->send(200, "text/plain", "OK");
+            Serial.printf(">>> Comando Manual: Bomba alterada para [%s]\n", estadoBombaManual ? "LIGADA" : "DESLIGADA");
+        } else {
+            request->send(400, "text/plain", "Bloqueado pelo modo automatico");
+        }
+    });
+
+    // Rota de Dados JSON para o Navegador
     server.on("/dados", HTTP_GET, [](AsyncWebServerRequest *request){
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         StaticJsonDocument<192> doc; // Aumentado ligeiramente para incluir o novo booleano
