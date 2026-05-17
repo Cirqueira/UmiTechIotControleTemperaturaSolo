@@ -8,7 +8,7 @@
 #include <Adafruit_SSD1306.h>
 #include "View.h" 
 
-#define RELE_PIN 18 
+#define RELE_PIN 5
 
 // OLED (SSD1306 I2C)
 #define SCREEN_WIDTH 128
@@ -49,28 +49,45 @@ static void desenharOLED() {
 }
 
 void processarBomba() {
-    // Bomba LIGADA quando umidade (%) for inferior a 60
-    if (readings.umid < 60.0f) {
-        digitalWrite(RELE_PIN, HIGH);
-    } else {
-        digitalWrite(RELE_PIN, LOW);
+    // Invertendo os comandos para sincronizar com o comportamento físico do seu relé
+    if (readings.umid < 55.0f) {
+        digitalWrite(RELE_PIN, HIGH); // Mudou para HIGH para LIGAR fisicamente
+        Serial.println(" -> Bomba Comando: Ligar");
+    } 
+    else if (readings.umid > 65.0f) {
+        digitalWrite(RELE_PIN, LOW);  // Mudou para LOW para DESLIGAR fisicamente
+        Serial.println(" -> Bomba Comando: Desligar");
     }
 }
 
 // Callback de Recebimento
 void OnDataRecv(const esp_now_recv_info_t * info, const uint8_t *data, int len) {
     memcpy(&readings, data, sizeof(readings));
+    
+    Serial.println("Recebido..:");
+    Serial.printf(" -> Solo(bruto): %d | Umidade: %.0f%% | Temp: %.1f\n",
+                  readings.solo, readings.umid, readings.temp);
+    // Agora, em vez de apenas um ponto, vamos ver os dados:
+    // Formatação idêntica à do transmissor usando printf
+    // %.0f remove as casas decimais da umidade (ex: 100 em vez de 100.00)
+    // Serial.printf("Recebido -> Solo(bruto): %d | Umidade: %.0f%% | Temp: %.1f\n",
+    //               readings.solo, readings.umid, readings.temp);
+
+    // Serial.print("Recebido -> Solo Bruto: "); Serial.print(readings.solo);
+    // Serial.print(" | Umid: "); Serial.print(readings.umid);
+    // Serial.print(" | Temp: "); Serial.print(readings.temp);
+    // Serial.println();
+
     processarBomba();
-    // Serial reduzido para não sobrecarregar o processador
-    Serial.print("."); 
+    Serial.println();
 }
 
 void setup() {
     Serial.begin(115200);
     delay(500);
-
-    pinMode(RELE_PIN, OUTPUT);
-    digitalWrite(RELE_PIN, LOW);
+	
+	pinMode(RELE_PIN, OUTPUT);
+    digitalWrite(RELE_PIN, HIGH); // Inicia desligado (para relés de lógica inversa)
 
     // OLED: inicializa I2C e o display
     Wire.begin(); // padrão ESP32: SDA=21, SCL=22
@@ -87,7 +104,7 @@ void setup() {
 
     // CONFIGURAÇÃO DE WI-FI ROBUSTA
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP("UmiTechIOT", ""); // Sem senha para facilitar
+    WiFi.softAP("UmiTechIOT", "123@456#"); 
     
     // Forçar o canal 1 (evita que o rádio fique pulando de frequência)
     esp_wifi_set_promiscuous(true);
@@ -101,8 +118,9 @@ void setup() {
         desenharOLED();
     }
 
+    // ESP-NOW (Comunicacao entre Esp's)
     if (esp_now_init() != ESP_OK) {
-        Serial.println("Erro ESP-NOW");
+        Serial.println("Erro ESP-NOW"); 
         return;
     }
 
@@ -118,10 +136,13 @@ void setup() {
     // Rota de Dados
     server.on("/dados", HTTP_GET, [](AsyncWebServerRequest *request){
         AsyncResponseStream *response = request->beginResponseStream("application/json");
-        StaticJsonDocument<128> doc; // Menor para ser mais rápido
+        StaticJsonDocument<128> doc;
         doc["atual"]["temp"] = readings.temp;
-        doc["atual"]["umid"] = readings.umid;  // percentual 0..100 (enviado pelo transmissor)
-        doc["atual"]["bomba"] = (digitalRead(RELE_PIN) == HIGH);
+        doc["atual"]["umid"] = readings.umid; 
+        
+        // Ajustado para refletir a nova lógica (HIGH agora significa bomba ligada)
+        doc["atual"]["bomba"] = (digitalRead(RELE_PIN) == HIGH); 
+        
         serializeJson(doc, *response);
         request->send(response);
     });
