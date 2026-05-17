@@ -78,9 +78,13 @@ O Relé funciona como um interruptor para o polo Positivo (+) da alimentação d
 * **Fonte 12V (Negativo)** ➡️ **Bomba d'água (Negativo)**
 
 ---
-Desenvolvido por Leonard Cirqueira - 2026
+
 ## 💻 Instalação e Configuração
 
 1. Clone este repositório para sua máquina local:
    ```bash
    git clone [https://github.com/seu-usuario/UmiTechIot.git](https://github.com/seu-usuario/UmiTechIot.git)
+
+---
+
+Desenvolvido por Leonard Cirqueira - 2026
