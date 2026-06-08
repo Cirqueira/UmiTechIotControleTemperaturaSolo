@@ -28,6 +28,10 @@ Aqui estão algumas imagens do sistema em pleno funcionamento:
   <img src="src/img/receptor.jpeg" width="45%" alt="Nó Receptor">
 </p>
 
+<p align="center">
+  <img src="src/img/Maquete.jpeg" width="45%" alt="Maquete">
+</p>
+
 ---
 
 ## 🏗 Arquitetura do Sistema
