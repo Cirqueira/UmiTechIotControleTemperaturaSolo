@@ -32,6 +32,11 @@ Aqui estão algumas imagens do sistema em pleno funcionamento:
   <img src="src/img/Maquete.jpeg" width="45%" alt="Maquete">
 </p>
 
+<p align="center">
+  <img src="src/img/Video_01.mp4" width="45%" alt="Video 01">
+  <img src="src/img/Video_02.mp4" width="45%" alt="Video 02">
+</p>
+
 ---
 
 ## 🏗 Arquitetura do Sistema
